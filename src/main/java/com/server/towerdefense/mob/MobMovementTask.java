@@ -46,6 +46,7 @@ public class MobMovementTask extends BukkitRunnable {
 
         target.setYaw(entityLocation.getYaw());
         target.setPitch(entityLocation.getPitch());
+
         double distance = entityLocation.distance(target);
         double speed = mob.getEffectiveSpeed(currentTick);
 
@@ -55,13 +56,20 @@ public class MobMovementTask extends BukkitRunnable {
             mob.setRouteProgress(mob.getPathIndex());
             return;
         }
+
         Location previous = pathManager.getPoint(arena, mob.getPathIndex() - 1);
-        Location next = entityLocation.clone().add(target.toVector().subtract(entityLocation.toVector()).normalize().multiply(speed));
+        Location next = entityLocation.clone().add(
+                target.toVector().subtract(entityLocation.toVector()).normalize().multiply(speed)
+        );
+
         mob.getEntity().teleport(next);
+
         if (previous != null) {
-            ouble segmentLength = previous.distance(target);
+            double segmentLength = previous.distance(target);
             double travelled = previous.distance(next);
-            mob.setRouteProgress((mob.getPathIndex() - 1) + Math.min(1.0, travelled / Math.max(0.01, segmentLength)));
+            double progress = travelled / Math.max(0.01, segmentLength);
+            mob.setRouteProgress((mob.getPathIndex() - 1) + Math.min(1.0, progress));
+        }
     }
 
     public long getCurrentTick() {
