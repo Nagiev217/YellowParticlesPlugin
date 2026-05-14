@@ -1,0 +1,15 @@
+name: TowerDefense
+version: ${version}
+main: com.server.towerdefense.TowerDefensePlugin
+api-version: "1.20"
+author: Server
+description: Minimal extensible Tower Defence core for Purpur/Paper 1.20.1.
+commands:
+  td:
+    description: Tower Defense test commands.
+    usage: /td <start|stop|wave|tower>
+    permission: towerdefense.admin
+permissions:
+  towerdefense.admin:
+    description: Allows using Tower Defense test commands.
+    default: op
