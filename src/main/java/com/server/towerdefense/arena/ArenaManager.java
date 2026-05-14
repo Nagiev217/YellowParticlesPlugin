@@ -53,7 +53,10 @@ public class ArenaManager {
             Location base = parseLocation(world, configManager.getConfig().getString(root + "base"));
             List<PathPoint> path = new ArrayList<>();
             for (String raw : configManager.getConfig().getStringList(root + "path")) {
-                path.add(new PathPoint(parseLocation(world, raw)));
+                Location pathLocation = parseLocation(world, raw);
+                if (pathLocation != null) {
+                    path.add(new PathPoint(pathLocation));
+                }
             }
 
             if (spawn != null && base != null && path.size() >= 2) {
