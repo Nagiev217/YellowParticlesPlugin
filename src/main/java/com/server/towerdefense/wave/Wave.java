@@ -6,9 +6,11 @@ public class Wave {
     private final int number;
     private final List<WaveMobEntry> entries;
     private final int startDelayTicks;
+
     private boolean active;
+    private boolean spawningStarted;
     private int spawnedMobs;
-    private int totalMobs;
+    private final int totalMobs;
 
     public Wave(int number, List<WaveMobEntry> entries, int startDelayTicks) {
         this.number = number;
@@ -36,6 +38,7 @@ public class Wave {
     public void setActive(boolean active) {
         this.active = active;
     }
+
     public boolean isSpawningStarted() {
         return spawningStarted;
     }
