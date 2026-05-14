@@ -1,14 +1,17 @@
 towers:
   archer:
+    max-health: 100
     damage: 5
     range: 12
     attack-speed-ticks: 20
   cannon:
+    max-health: 150
     damage: 12
     range: 8
     attack-speed-ticks: 50
     splash-radius: 3
   ice:
+    max-health: 120
     damage: 2
     range: 10
     attack-speed-ticks: 30
