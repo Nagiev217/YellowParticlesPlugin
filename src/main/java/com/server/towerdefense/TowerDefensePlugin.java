@@ -154,6 +154,9 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
     }
 
     private void handleReload(CommandSender sender) {
+        for (var arena : new ArrayList<>(arenaManager.getArenas())) {
+            arenaManager.stopArena(arena.getId());
+        }
         configManager.load();
         arenaManager.loadArenas();
         waveManager.loadWaves();
