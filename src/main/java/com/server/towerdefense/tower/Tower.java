@@ -15,12 +15,14 @@ public class Tower {
     private final double range;
     private final int attackSpeedTicks;
     private final ArmorStand healthDisplay;
+
     private double health;
     private int level = 1;
     private TargetMode targetMode = TargetMode.FIRST;
     private long lastAttackTick;
 
-   public Tower(UUID id, UUID owner, Location location, TowerType type, double maxHealth, double damage, double range, int attackSpeedTicks, ArmorStand healthDisplay) {
+    public Tower(UUID id, UUID owner, Location location, TowerType type, double maxHealth,
+                 double damage, double range, int attackSpeedTicks, ArmorStand healthDisplay) {
         this.id = id;
         this.owner = owner;
         this.location = location;
@@ -53,6 +55,7 @@ public class Tower {
     public int getLevel() {
         return level;
     }
+
     public double getMaxHealth() {
         return maxHealth;
     }
@@ -88,7 +91,6 @@ public class Tower {
     public void markAttack(long currentTick) {
         lastAttackTick = currentTick;
     }
-}
 
     public boolean damageTower(double amount) {
         health = Math.max(0.0, health - amount);
@@ -107,3 +109,4 @@ public class Tower {
             healthDisplay.setCustomName(type.name() + " HP: " + Math.ceil(health) + "/" + Math.ceil(maxHealth));
         }
     }
+}
