@@ -36,6 +36,13 @@ public class Wave {
     public void setActive(boolean active) {
         this.active = active;
     }
+    public boolean isSpawningStarted() {
+        return spawningStarted;
+    }
+
+    public void setSpawningStarted(boolean spawningStarted) {
+        this.spawningStarted = spawningStarted;
+    }
 
     public int getSpawnedMobs() {
         return spawnedMobs;
