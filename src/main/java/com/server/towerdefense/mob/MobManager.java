@@ -49,14 +49,7 @@ public class MobManager {
         entity.setCustomName(tdMob.formatName());
         arena.getActiveMobs().add(tdMob);
         return tdMob;
-    }
-
-    public Optional<TDMob> findByEntity(LivingEntity entity) {
-        return plugin.getServer().getWorlds().stream()
-                .flatMap(world -> world.getEntities().stream())
-                .filter(candidate -> candidate.getUniqueId().equals(entity.getUniqueId()))
-                .findAny()
-                .flatMap(candidate -> Optional.empty());
+    
     }
 
     public void killMob(Arena arena, TDMob mob) {
