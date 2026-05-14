@@ -1,0 +1,84 @@
+towers:
+  archer:
+    damage: 5
+    range: 12
+    attack-speed-ticks: 20
+  cannon:
+    damage: 12
+    range: 8
+    attack-speed-ticks: 50
+    splash-radius: 3
+  ice:
+    damage: 2
+    range: 10
+    attack-speed-ticks: 30
+    slow-percent: 40
+    slow-duration-ticks: 60
+
+mobs:
+  normal:
+    max-hp: 20
+    speed: 0.18
+    reward: 5
+  fast:
+    max-hp: 12
+    speed: 0.28
+    reward: 7
+  tank:
+    max-hp: 80
+    speed: 0.10
+    reward: 15
+  boss:
+    max-hp: 300
+    speed: 0.08
+    reward: 100
+
+waves:
+  1:
+    start-delay-ticks: 100
+    entries:
+      - type: NORMAL
+        amount: 10
+        spawn-delay-ticks: 20
+  2:
+    start-delay-ticks: 100
+    entries:
+      - type: NORMAL
+        amount: 8
+        spawn-delay-ticks: 20
+      - type: FAST
+        amount: 4
+        spawn-delay-ticks: 15
+  3:
+    start-delay-ticks: 100
+    entries:
+      - type: NORMAL
+        amount: 6
+        spawn-delay-ticks: 20
+      - type: FAST
+        amount: 6
+        spawn-delay-ticks: 15
+      - type: TANK
+        amount: 2
+        spawn-delay-ticks: 40
+  5:
+    start-delay-ticks: 100
+    entries:
+      - type: BOSS
+        amount: 1
+        spawn-delay-ticks: 20
+      - type: NORMAL
+        amount: 10
+        spawn-delay-ticks: 20
+
+arenas:
+  test:
+    world: world
+    mob-spawn: "0,64,0"
+    base: "50,64,0"
+    path:
+      - "0,64,0"
+      - "10,64,0"
+      - "20,64,5"
+      - "35,64,5"
+      - "50,64,0"
