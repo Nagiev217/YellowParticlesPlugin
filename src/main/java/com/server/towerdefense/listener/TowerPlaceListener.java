@@ -5,6 +5,7 @@ import com.server.towerdefense.arena.ArenaManager;
 import com.server.towerdefense.tower.TowerManager;
 import com.server.towerdefense.tower.TowerType;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -39,6 +40,10 @@ public class TowerPlaceListener implements Listener {
         }
         if (towerManager.findAt(arena, placeLocation).isPresent()) {
             event.getPlayer().sendMessage("There is already a tower here.");
+            return;
+        }
+        if (placeLocation.getBlock().getType() != Material.AIR || placeLocation.clone().add(0, 1, 0).getBlock().getType() != Material.AIR) {
+            event.getPlayer().sendMessage("Tower space must be clear.");
             return;
         }
 
