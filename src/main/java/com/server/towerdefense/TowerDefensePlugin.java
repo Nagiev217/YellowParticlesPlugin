@@ -45,7 +45,7 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
         arenaManager.loadArenas();
         waveManager.loadWaves();
 
-        movementTask = new MobMovementTask(arenaManager, mobManager, pathManager).runTaskTimer(this, 1L, 1L);
+        movementTask = new MobMovementTask(arenaManager, mobManager, pathManager, towerManager, configManager).runTaskTimer(this, 1L, 1L);
         attackTask = new TowerAttackTask(arenaManager, mobManager, configManager).runTaskTimer(this, 1L, 1L);
 
         getServer().getPluginManager().registerEvents(new TowerPlaceListener(arenaManager, towerManager), this);
