@@ -3,6 +3,7 @@ package com.server.towerdefense.tower;
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.config.ConfigManager;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
@@ -73,8 +74,34 @@ public class TowerManager {
 
     public Optional<Tower> findAt(Arena arena, Location location) {
         return arena.getActiveTowers().stream()
-                .filter(tower -> tower.getLocation().getBlock().equals(location.getBlock()))
+                .filter(tower -> isTowerBlock(tower, location))
                 .findFirst();
+    }
+
+    public Optional<Tower> findNearestInRange(Arena arena, Location location, double range) {
+        double rangeSquared = range * range;
+        return arena.getActiveTowers().stream()
+                .filter(tower -> tower.getLocation().getWorld().equals(location.getWorld()))
+                .filter(tower -> tower.getLocation().add(0.5, 0.5, 0.5).distanceSquared(location) <= rangeSquared)
+                .min((first, second) -> Double.compare(
+                        first.getLocation().distanceSquared(location),
+                        second.getLocation().distanceSquared(location)));
+    }
+
+    public void removeTower(Arena arena, Tower tower) {
+        arena.getActiveTowers().remove(tower);
+        removeVisual(tower);
+    }
+
+    public double repairTower(Tower tower) {
+        double amount = configManager.getConfig().getDouble("towers.repair.amount", 25.0);
+        return tower.repair(amount);
+    }
+
+    public Material getRepairMaterial() {
+        String rawMaterial = configManager.getConfig().getString("towers.repair.material", "IRON_INGOT");
+        Material material = Material.matchMaterial(rawMaterial);
+        return material == null ? Material.IRON_INGOT : material;
     }
 
     public void removeAll(Arena arena) {
@@ -99,10 +126,17 @@ public class TowerManager {
         tower.removeHealthDisplay();
     }
 
+    private boolean isTowerBlock(Tower tower, Location location) {
+        Block clickedBlock = location.getBlock();
+        Location towerLocation = tower.getLocation();
+        return towerLocation.getBlock().equals(clickedBlock)
+                || towerLocation.clone().add(0, 1, 0).getBlock().equals(clickedBlock);
+    }
+
     public NamespacedKey getTowerItemKey() {
         return towerItemKey;
     }
-    
+
     private ArmorStand createHealthDisplay(Location towerLocation) {
         Location displayLocation = towerLocation.clone().add(0.5, 2.25, 0.5);
         ArmorStand armorStand = (ArmorStand) towerLocation.getWorld().spawnEntity(displayLocation, EntityType.ARMOR_STAND);
