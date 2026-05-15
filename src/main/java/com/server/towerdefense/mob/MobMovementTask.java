@@ -1,106 +1,139 @@
 package com.server.towerdefense.mob;
 
-import org.bukkit.entity.LivingEntity;
+import com.server.towerdefense.arena.Arena;
+import com.server.towerdefense.arena.ArenaManager;
+import com.server.towerdefense.config.ConfigManager;
+import com.server.towerdefense.path.PathManager;
+import com.server.towerdefense.tower.Tower;
+import com.server.towerdefense.tower.TowerManager;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.UUID;
+public class MobMovementTask extends BukkitRunnable {
+    private final ArenaManager arenaManager;
+    private final MobManager mobManager;
+    private final PathManager pathManager;
+    private final TowerManager towerManager;
+    private final ConfigManager configManager;
+    private long currentTick;
 
-public class TDMob {
-    private final UUID id;
-    private final LivingEntity entity;
-    private final MobType type;
-    private final double maxHp;
-    private final double baseSpeed;
-    private final int reward;
-    private double hp;
-    private int pathIndex = 1;
-    private double routeProgress;
-    private double slowMultiplier = 1.0;
-    private long slowUntilTick;
-    private long lastTowerAttackTick;
-
-    public TDMob(UUID id, LivingEntity entity, MobType type, double maxHp, double baseSpeed, int reward) {
-        this.id = id;
-        this.entity = entity;
-        this.type = type;
-        this.maxHp = maxHp;
-        this.baseSpeed = baseSpeed;
-        this.reward = reward;
-        this.hp = maxHp;
+    public MobMovementTask(ArenaManager arenaManager, MobManager mobManager, PathManager pathManager,
+                           TowerManager towerManager, ConfigManager configManager) {
+        this.arenaManager = arenaManager;
+        this.mobManager = mobManager;
+        this.pathManager = pathManager;
+        this.towerManager = towerManager;
+        this.configManager = configManager;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public LivingEntity getEntity() {
-        return entity;
-    }
-
-    public MobType getType() {
-        return type;
-    }
-
-    public double getMaxHp() {
-        return maxHp;
-    }
-
-    public double getHp() {
-        return hp;
-    }
-
-    public double getBaseSpeed() {
-        return baseSpeed;
-    }
-
-    public int getReward() {
-        return reward;
-    }
-
-    public int getPathIndex() {
-        return pathIndex;
-    }
-
-    public void setPathIndex(int pathIndex) {
-        this.pathIndex = pathIndex;
-    }
-
-    public double getRouteProgress() {
-        return routeProgress;
-    }
-
-    public void setRouteProgress(double routeProgress) {
-        this.routeProgress = routeProgress;
-    }
-
-    public double getEffectiveSpeed(long currentTick) {
-        if (slowUntilTick <= currentTick) {
-            slowMultiplier = 1.0;
+    @Override
+    public void run() {
+        currentTick++;
+        for (Arena arena : arenaManager.getArenas()) {
+            if (!arena.isRunning()) {
+                continue;
+            }
+            for (TDMob mob : mobManager.getLivingMobs(arena).toArray(new TDMob[0])) {
+                moveMob(arena, mob);
+            }
         }
-        return baseSpeed * slowMultiplier;
     }
 
-    public void applySlow(double slowPercent, int durationTicks, long currentTick) {
-        double clamped = Math.max(0.0, Math.min(100.0, slowPercent));
-        slowMultiplier = 1.0 - (clamped / 100.0);
-        slowUntilTick = Math.max(slowUntilTick, currentTick + durationTicks);
+    private void moveMob(Arena arena, TDMob mob) {
+        if (attackNearbyTower(arena, mob)) {
+            return;
+        }
+
+        if (pathManager.hasReachedEnd(arena, mob.getPathIndex())) {
+            mobManager.leakMob(arena, mob);
+            return;
+        }
+
+        Location entityLocation = mob.getEntity().getLocation();
+        Location target = pathManager.getPoint(arena, mob.getPathIndex());
+        if (target == null) {
+            mobManager.leakMob(arena, mob);
+            return;
+        }
+
+        target.setYaw(entityLocation.getYaw());
+        target.setPitch(entityLocation.getPitch());
+
+        double distance = entityLocation.distance(target);
+        double speed = mob.getEffectiveSpeed(currentTick);
+
+        if (distance <= speed) {
+            mob.getEntity().teleport(target);
+            mob.setPathIndex(mob.getPathIndex() + 1);
+            mob.setRouteProgress(mob.getPathIndex());
+            return;
+        }
+
+        Location previous = pathManager.getPoint(arena, mob.getPathIndex() - 1);
+        Location next = entityLocation.clone().add(
+                target.toVector().subtract(entityLocation.toVector()).normalize().multiply(speed)
+        );
+
+        mob.getEntity().teleport(next);
+
+        if (previous != null) {
+            double segmentLength = previous.distance(target);
+            double travelled = previous.distance(next);
+            double progress = travelled / Math.max(0.01, segmentLength);
+            mob.setRouteProgress((mob.getPathIndex() - 1) + Math.min(1.0, progress));
+        }
     }
 
-    public boolean damage(double amount) {
-        hp = Math.max(0.0, hp - amount);
-        entity.setHealth(Math.max(0.1, Math.min(entity.getMaxHealth(), hp)));
-        entity.setCustomName(formatName());
-        return hp <= 0.0;
+    private boolean attackNearbyTower(Arena arena, TDMob mob) {
+        double range = configManager.getConfig().getDouble("mobs.tower-attack.range", 1.8);
+        double damage = configManager.getConfig().getDouble("mobs.tower-attack.damage", 5.0);
+        int attackSpeedTicks = configManager.getConfig().getInt("mobs.tower-attack.attack-speed-ticks", 20);
+
+        Location mobLocation = mob.getEntity().getLocation();
+        Tower tower = towerManager.findNearestInRange(arena, mobLocation, range).orElse(null);
+        if (tower == null) {
+            return false;
+        }
+
+        if (!mob.canAttackTower(currentTick, attackSpeedTicks)) {
+            return true;
+        }
+
+        mob.markTowerAttack(currentTick);
+
+        mob.getEntity().getWorld().spawnParticle(
+                Particle.CRIT,
+                tower.getLocation().add(0.5, 1.0, 0.5),
+                8,
+                0.25,
+                0.25,
+                0.25,
+                0.02
+        );
+
+        mob.getEntity().getWorld().playSound(
+                tower.getLocation(),
+                Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR,
+                0.45f,
+                1.2f
+        );
+
+        if (tower.damageTower(damage)) {
+            towerManager.removeTower(arena, tower);
+            mob.getEntity().getWorld().playSound(
+                    mobLocation,
+                    Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR,
+                    0.8f,
+                    1.0f
+            );
+        }
+
+        return true;
     }
 
-    public boolean canAttackTower(long currentTick, int attackSpeedTicks) {
-        return currentTick - lastTowerAttackTick >= attackSpeedTicks;
-    }
-
-    public void markTowerAttack(long currentTick) {
-        lastTowerAttackTick = currentTick;
-    }
-
-    public String formatName() {
-        return type.name() + " " + Math.ceil(hp) + "/" + Math.ceil(maxHp);
+    public long getCurrentTick() {
+        return currentTick;
     }
 }
