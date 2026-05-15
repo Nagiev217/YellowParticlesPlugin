@@ -2,8 +2,10 @@ package com.server.towerdefense.listener;
 
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.arena.ArenaManager;
+import com.server.towerdefense.tower.Tower;
 import com.server.towerdefense.tower.TowerManager;
 import com.server.towerdefense.tower.TowerType;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
@@ -23,6 +25,10 @@ public class TowerPlaceListener implements Listener {
     @EventHandler
     public void onPlaceTower(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) {
+            return;
+        }
+
+        if (tryRepairTower(event)) {
             return;
         }
 
@@ -49,5 +55,40 @@ public class TowerPlaceListener implements Listener {
 
         towerManager.placeTower(arena, event.getPlayer(), placeLocation, type);
         event.getPlayer().sendMessage("Placed " + type.name() + ".");
+    }
+
+    private boolean tryRepairTower(PlayerInteractEvent event) {
+        if (event.getItem() == null || event.getItem().getType() != towerManager.getRepairMaterial()) {
+            return false;
+        }
+
+        Location clickedLocation = event.getClickedBlock().getLocation();
+        Arena arena = arenaManager.findArenaByLocation(clickedLocation);
+        if (arena == null) {
+            return false;
+        }
+
+        Tower tower = towerManager.findAt(arena, clickedLocation).orElse(null);
+        if (tower == null) {
+            return false;
+        }
+
+        event.setCancelled(true);
+        if (tower.isFullHealth()) {
+            event.getPlayer().sendMessage("Tower is already fully repaired.");
+            return true;
+        }
+
+        double repaired = towerManager.repairTower(tower);
+        if (repaired <= 0.0) {
+            event.getPlayer().sendMessage("Tower could not be repaired.");
+            return true;
+        }
+
+        if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
+            event.getItem().setAmount(event.getItem().getAmount() - 1);
+        }
+        event.getPlayer().sendMessage("Repaired tower by " + Math.ceil(repaired) + " HP.");
+        return true;
     }
 }
