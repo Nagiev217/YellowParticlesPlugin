@@ -11,11 +11,13 @@ public class TDMob {
     private final double maxHp;
     private final double baseSpeed;
     private final int reward;
+
     private double hp;
     private int pathIndex = 1;
     private double routeProgress;
     private double slowMultiplier = 1.0;
     private long slowUntilTick;
+    private long lastTowerAttackTick;
 
     public TDMob(UUID id, LivingEntity entity, MobType type, double maxHp, double baseSpeed, int reward) {
         this.id = id;
@@ -89,6 +91,14 @@ public class TDMob {
         entity.setHealth(Math.max(0.1, Math.min(entity.getMaxHealth(), hp)));
         entity.setCustomName(formatName());
         return hp <= 0.0;
+    }
+
+    public boolean canAttackTower(long currentTick, int attackSpeedTicks) {
+        return currentTick - lastTowerAttackTick >= attackSpeedTicks;
+    }
+
+    public void markTowerAttack(long currentTick) {
+        lastTowerAttackTick = currentTick;
     }
 
     public String formatName() {
