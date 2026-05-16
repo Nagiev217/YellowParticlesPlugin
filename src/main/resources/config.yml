@@ -1,25 +1,89 @@
+economy:
+  starting-money: 100
+  sell-refund-percent: 70
+
+base:
+  max-hp: 100
+
 towers:
   repair:
     material: IRON_INGOT
     amount: 25
   archer:
+    cost: 50
     max-health: 100
     damage: 5
     range: 12
     attack-speed-ticks: 20
+    levels:
+      1:
+        damage: 5
+        range: 12
+        attack-speed-ticks: 20
+        upgrade-cost: 75
+      2:
+        damage: 8
+        range: 13
+        attack-speed-ticks: 16
+        upgrade-cost: 120
+      3:
+        damage: 12
+        range: 15
+        attack-speed-ticks: 12
   cannon:
+    cost: 80
     max-health: 150
     damage: 12
     range: 8
     attack-speed-ticks: 50
     splash-radius: 3
+    levels:
+      1:
+        damage: 12
+        range: 8
+        attack-speed-ticks: 50
+        splash-radius: 3
+        upgrade-cost: 100
+      2:
+        damage: 20
+        range: 9
+        attack-speed-ticks: 45
+        splash-radius: 4
+        upgrade-cost: 160
+      3:
+        damage: 35
+        range: 10
+        attack-speed-ticks: 40
+        splash-radius: 5
   ice:
+    cost: 70
     max-health: 120
     damage: 2
     range: 10
     attack-speed-ticks: 30
     slow-percent: 40
     slow-duration-ticks: 60
+    levels:
+      1:
+        damage: 2
+        range: 10
+        attack-speed-ticks: 30
+        slow-percent: 40
+        slow-duration-ticks: 60
+        upgrade-cost: 90
+      2:
+        damage: 4
+        range: 11
+        attack-speed-ticks: 28
+        slow-percent: 50
+        slow-duration-ticks: 80
+        upgrade-cost: 140
+      3:
+        damage: 6
+        range: 12
+        attack-speed-ticks: 25
+        slow-percent: 60
+        slow-duration-ticks: 100
 
 mobs:
   tower-attack:
@@ -30,20 +94,28 @@ mobs:
     max-hp: 20
     speed: 0.18
     reward: 5
+    base-damage: 1
   fast:
     max-hp: 12
     speed: 0.28
     reward: 7
+    base-damage: 1
   tank:
     max-hp: 80
     speed: 0.10
     reward: 15
+    base-damage: 5
   boss:
     max-hp: 300
     speed: 0.08
     reward: 100
+    base-damage: 25
 
 waves:
+  auto-start-next-wave: true
+  delay-between-waves-ticks: 200
+
+wave-list:
   1:
     start-delay-ticks: 100
     entries:
@@ -57,19 +129,13 @@ waves:
         amount: 8
         spawn-delay-ticks: 20
       - type: FAST
-        amount: 4
+        amount: 5
         spawn-delay-ticks: 15
   3:
     start-delay-ticks: 100
     entries:
-      - type: NORMAL
-        amount: 6
-        spawn-delay-ticks: 20
-      - type: FAST
-        amount: 6
-        spawn-delay-ticks: 15
       - type: TANK
-        amount: 2
+        amount: 3
         spawn-delay-ticks: 40
   5:
     start-delay-ticks: 100
@@ -81,11 +147,26 @@ waves:
         amount: 10
         spawn-delay-ticks: 20
 
+visuals:
+  towers:
+    archer:
+      use-custom-model: false
+      custom-model-data: 1001
+    cannon:
+      use-custom-model: false
+      custom-model-data: 1002
+    ice:
+      use-custom-model: false
+      custom-model-data: 1003
+
 arenas:
   test:
     world: world
     mob-spawn: "0,64,0"
     base: "50,64,0"
+    build-zone:
+      min: "-10,60,-10"
+      max: "60,80,15"
     path:
       - "0,64,0"
       - "10,64,0"
