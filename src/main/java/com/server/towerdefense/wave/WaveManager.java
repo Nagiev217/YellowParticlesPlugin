@@ -80,6 +80,10 @@ public class WaveManager {
             }
             waves.put(number, new Wave(number, entries, startDelayTicks));
         }
+        if (waves.isEmpty()) {
+            loadDefaultWaves();
+            Bukkit.getLogger().warning("[TowerDefense] No waves were loaded from config.yml. Built-in test waves were loaded instead.");
+        }
     }
 
     public boolean startWave(Arena arena, int number) {
@@ -133,6 +137,23 @@ public class WaveManager {
             return "none";
         }
         return new TreeSet<>(waves.keySet()).toString();
+    }
+
+    private void loadDefaultWaves() {
+        waves.put(1, new Wave(1, List.of(
+                new WaveMobEntry(MobType.NORMAL, 10, 20)
+        ), 100));
+        waves.put(2, new Wave(2, List.of(
+                new WaveMobEntry(MobType.NORMAL, 8, 20),
+                new WaveMobEntry(MobType.FAST, 5, 15)
+        ), 100));
+        waves.put(3, new Wave(3, List.of(
+                new WaveMobEntry(MobType.TANK, 3, 40)
+        ), 100));
+        waves.put(5, new Wave(5, List.of(
+                new WaveMobEntry(MobType.BOSS, 1, 20),
+                new WaveMobEntry(MobType.NORMAL, 10, 20)
+        ), 100));
     }
 
     private void spawnEntries(Arena arena, Wave wave) {
