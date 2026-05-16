@@ -2,9 +2,10 @@ package com.server.towerdefense.tower;
 
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.arena.ArenaManager;
-import com.server.towerdefense.config.ConfigManager;
+import com.server.towerdefense.economy.EconomyManager;
 import com.server.towerdefense.mob.MobManager;
 import com.server.towerdefense.mob.TDMob;
+import com.server.towerdefense.scoreboard.ScoreboardManager;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -17,13 +18,15 @@ import java.util.Optional;
 public class TowerAttackTask extends BukkitRunnable {
     private final ArenaManager arenaManager;
     private final MobManager mobManager;
-    private final ConfigManager configManager;
+    private final EconomyManager economyManager;
+    private final ScoreboardManager scoreboardManager;
     private long currentTick;
 
-    public TowerAttackTask(ArenaManager arenaManager, MobManager mobManager, ConfigManager configManager) {
+    public TowerAttackTask(ArenaManager arenaManager, MobManager mobManager, EconomyManager economyManager, ScoreboardManager scoreboardManager) {
         this.arenaManager = arenaManager;
         this.mobManager = mobManager;
-        this.configManager = configManager;
+        this.economyManager = economyManager;
+        this.scoreboardManager = scoreboardManager;
     }
 
     @Override
@@ -74,11 +77,13 @@ public class TowerAttackTask extends BukkitRunnable {
         target.getEntity().getWorld().playSound(effectLocation, sound, 0.5f, 1.2f);
         if (target.damage(tower.getDamage())) {
             mobManager.killMob(arena, target);
+            economyManager.addMoney(arena, tower.getOwner(), target.getReward());
+            scoreboardManager.update(arena);
         }
     }
 
     private void damageSplash(Arena arena, Tower tower, TDMob target) {
-        double splashRadius = configManager.getConfig().getDouble("towers.cannon.splash-radius", 3.0);
+        double splashRadius = tower.getSplashRadius();
         Location center = target.getEntity().getLocation();
         center.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, center, 20, 0.8, 0.4, 0.8, 0.04);
         center.getWorld().playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.4f);
@@ -89,14 +94,14 @@ public class TowerAttackTask extends BukkitRunnable {
             }
             if (mob.getEntity().getLocation().distanceSquared(center) <= splashRadius * splashRadius && mob.damage(tower.getDamage())) {
                 mobManager.killMob(arena, mob);
+                economyManager.addMoney(arena, tower.getOwner(), mob.getReward());
+                scoreboardManager.update(arena);
             }
         }
     }
 
     private void damageIce(Arena arena, Tower tower, TDMob target) {
-        double slowPercent = configManager.getConfig().getDouble("towers.ice.slow-percent", 40.0);
-        int durationTicks = configManager.getConfig().getInt("towers.ice.slow-duration-ticks", 60);
-        target.applySlow(slowPercent, durationTicks, currentTick);
+        target.applySlow(tower.getSlowPercent(), tower.getSlowDurationTicks(), currentTick);
         damageSingle(arena, tower, target, Particle.SNOWFLAKE, Sound.BLOCK_GLASS_BREAK);
     }
 }
