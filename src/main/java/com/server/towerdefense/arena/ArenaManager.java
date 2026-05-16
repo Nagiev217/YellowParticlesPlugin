@@ -1,8 +1,11 @@
 package com.server.towerdefense.arena;
 
 import com.server.towerdefense.config.ConfigManager;
+import com.server.towerdefense.base.BaseManager;
+import com.server.towerdefense.economy.EconomyManager;
 import com.server.towerdefense.mob.MobManager;
 import com.server.towerdefense.path.PathPoint;
+import com.server.towerdefense.scoreboard.ScoreboardManager;
 import com.server.towerdefense.tower.TowerManager;
 import com.server.towerdefense.wave.WaveManager;
 import org.bukkit.Bukkit;
@@ -23,6 +26,9 @@ public class ArenaManager {
     private TowerManager towerManager;
     private MobManager mobManager;
     private WaveManager waveManager;
+    private EconomyManager economyManager;
+    private BaseManager baseManager;
+    private ScoreboardManager scoreboardManager;
 
     public ArenaManager(ConfigManager configManager) {
         this.configManager = configManager;
@@ -32,6 +38,12 @@ public class ArenaManager {
         this.towerManager = towerManager;
         this.mobManager = mobManager;
         this.waveManager = waveManager;
+    }
+
+    public void setMatchManagers(EconomyManager economyManager, BaseManager baseManager, ScoreboardManager scoreboardManager) {
+        this.economyManager = economyManager;
+        this.baseManager = baseManager;
+        this.scoreboardManager = scoreboardManager;
     }
 
     public void loadArenas() {
@@ -81,6 +93,15 @@ public class ArenaManager {
         Arena arena = optionalArena.get();
         arena.setRunning(true);
         arena.setCurrentWave(0);
+        if (economyManager != null) {
+            economyManager.startMatch(arena);
+        }
+        if (baseManager != null) {
+            baseManager.startMatch(arena);
+        }
+        if (scoreboardManager != null) {
+            scoreboardManager.update(arena);
+        }
         return true;
     }
 
@@ -100,8 +121,27 @@ public class ArenaManager {
         if (towerManager != null) {
             towerManager.removeAll(arena);
         }
+        if (baseManager != null) {
+            baseManager.stopMatch(arena);
+        }
+        if (economyManager != null) {
+            economyManager.stopMatch(arena);
+        }
+        if (scoreboardManager != null) {
+            scoreboardManager.clear(arena);
+        }
         arena.setCurrentWave(0);
         return true;
+    }
+
+    public void defeatArena(Arena arena) {
+        arena.getWorld().getPlayers().forEach(player -> player.sendMessage("Tower Defence defeat! The base was destroyed."));
+        stopArena(arena.getId());
+    }
+
+    public void winArena(Arena arena) {
+        arena.getWorld().getPlayers().forEach(player -> player.sendMessage("Tower Defence victory! All waves cleared."));
+        stopArena(arena.getId());
     }
 
     public Arena findArenaByLocation(Location location) {
