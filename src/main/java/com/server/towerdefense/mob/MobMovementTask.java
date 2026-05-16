@@ -11,6 +11,8 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class MobMovementTask extends BukkitRunnable {
     private final ArenaManager arenaManager;
     private final MobManager mobManager;
@@ -19,8 +21,7 @@ public class MobMovementTask extends BukkitRunnable {
     private final ConfigManager configManager;
     private long currentTick;
 
-    public MobMovementTask(ArenaManager arenaManager, MobManager mobManager, PathManager pathManager,
-                           TowerManager towerManager, ConfigManager configManager) {
+    public MobMovementTask(ArenaManager arenaManager, MobManager mobManager, PathManager pathManager, TowerManager towerManager, ConfigManager configManager) {
         this.arenaManager = arenaManager;
         this.mobManager = mobManager;
         this.pathManager = pathManager;
@@ -60,7 +61,6 @@ public class MobMovementTask extends BukkitRunnable {
 
         target.setYaw(entityLocation.getYaw());
         target.setPitch(entityLocation.getPitch());
-
         double distance = entityLocation.distance(target);
         double speed = mob.getEffectiveSpeed(currentTick);
 
@@ -72,24 +72,23 @@ public class MobMovementTask extends BukkitRunnable {
         }
 
         Location previous = pathManager.getPoint(arena, mob.getPathIndex() - 1);
-        Location next = entityLocation.clone().add(
-                target.toVector().subtract(entityLocation.toVector()).normalize().multiply(speed)
-        );
-
+        Location next = entityLocation.clone().add(target.toVector().subtract(entityLocation.toVector()).normalize().multiply(speed));
         mob.getEntity().teleport(next);
-
         if (previous != null) {
             double segmentLength = previous.distance(target);
             double travelled = previous.distance(next);
-            double progress = travelled / Math.max(0.01, segmentLength);
-            mob.setRouteProgress((mob.getPathIndex() - 1) + Math.min(1.0, progress));
+            mob.setRouteProgress((mob.getPathIndex() - 1) + Math.min(1.0, travelled / Math.max(0.01, segmentLength)));
         }
     }
 
     private boolean attackNearbyTower(Arena arena, TDMob mob) {
+        if (mob.hasAttemptedTowerAttack()) {
+            return false;
+        }
+
         double range = configManager.getConfig().getDouble("mobs.tower-attack.range", 1.8);
         double damage = configManager.getConfig().getDouble("mobs.tower-attack.damage", 5.0);
-        int attackSpeedTicks = configManager.getConfig().getInt("mobs.tower-attack.attack-speed-ticks", 20);
+        double chancePercent = configManager.getConfig().getDouble("mobs.tower-attack.chance-percent", 10.0);
 
         Location mobLocation = mob.getEntity().getLocation();
         Tower tower = towerManager.findNearestInRange(arena, mobLocation, range).orElse(null);
@@ -97,40 +96,19 @@ public class MobMovementTask extends BukkitRunnable {
             return false;
         }
 
-        if (!mob.canAttackTower(currentTick, attackSpeedTicks)) {
-            return true;
+        mob.markTowerAttackAttempted();
+        double clampedChance = Math.max(0.0, Math.min(100.0, chancePercent));
+        if (ThreadLocalRandom.current().nextDouble(100.0) >= clampedChance) {
+            return false;
         }
 
-        mob.markTowerAttack(currentTick);
-
-        mob.getEntity().getWorld().spawnParticle(
-                Particle.CRIT,
-                tower.getLocation().add(0.5, 1.0, 0.5),
-                8,
-                0.25,
-                0.25,
-                0.25,
-                0.02
-        );
-
-        mob.getEntity().getWorld().playSound(
-                tower.getLocation(),
-                Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR,
-                0.45f,
-                1.2f
-        );
-
+        mob.getEntity().getWorld().spawnParticle(Particle.CRIT, tower.getLocation().add(0.5, 1.0, 0.5), 8, 0.25, 0.25, 0.25, 0.02);
+        mob.getEntity().getWorld().playSound(tower.getLocation(), Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 0.45f, 1.2f);
         if (tower.damageTower(damage)) {
             towerManager.removeTower(arena, tower);
-            mob.getEntity().getWorld().playSound(
-                    mobLocation,
-                    Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR,
-                    0.8f,
-                    1.0f
-            );
+            mob.getEntity().getWorld().playSound(mobLocation, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.8f, 1.0f);
         }
-
-        return true;
+        return false;
     }
 
     public long getCurrentTick() {
