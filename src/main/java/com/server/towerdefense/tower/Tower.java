@@ -11,26 +11,29 @@ public class Tower {
     private final Location location;
     private final TowerType type;
     private final double maxHealth;
-    private final double damage;
-    private final double range;
-    private final int attackSpeedTicks;
     private final ArmorStand healthDisplay;
+    private double damage;
+    private double range;
+    private int attackSpeedTicks;
+    private double splashRadius;
+    private double slowPercent;
+    private int slowDurationTicks;
     private double health;
     private int level = 1;
+    private int totalSpent;
     private TargetMode targetMode = TargetMode.FIRST;
     private long lastAttackTick;
 
-    public Tower(UUID id, UUID owner, Location location, TowerType type, double maxHealth, double damage, double range, int attackSpeedTicks, ArmorStand healthDisplay) {
+    public Tower(UUID id, UUID owner, Location location, TowerType type, double maxHealth, int totalSpent, TowerUpgradeData upgradeData, ArmorStand healthDisplay) {
         this.id = id;
         this.owner = owner;
         this.location = location;
         this.type = type;
         this.maxHealth = maxHealth;
         this.health = maxHealth;
-        this.damage = damage;
-        this.range = range;
-        this.attackSpeedTicks = attackSpeedTicks;
+        this.totalSpent = totalSpent;
         this.healthDisplay = healthDisplay;
+        applyUpgradeData(upgradeData);
         updateHealthDisplay();
     }
 
@@ -74,6 +77,22 @@ public class Tower {
         return attackSpeedTicks;
     }
 
+    public double getSplashRadius() {
+        return splashRadius;
+    }
+
+    public double getSlowPercent() {
+        return slowPercent;
+    }
+
+    public int getSlowDurationTicks() {
+        return slowDurationTicks;
+    }
+
+    public int getTotalSpent() {
+        return totalSpent;
+    }
+
     public TargetMode getTargetMode() {
         return targetMode;
     }
@@ -105,6 +124,21 @@ public class Tower {
 
     public boolean isFullHealth() {
         return health >= maxHealth;
+    }
+
+    public void addSpent(int amount) {
+        totalSpent += Math.max(0, amount);
+    }
+
+    public void applyUpgradeData(TowerUpgradeData data) {
+        this.level = data.getLevel();
+        this.damage = data.getDamage();
+        this.range = data.getRange();
+        this.attackSpeedTicks = data.getAttackSpeedTicks();
+        this.splashRadius = data.getSplashRadius();
+        this.slowPercent = data.getSlowPercent();
+        this.slowDurationTicks = data.getSlowDurationTicks();
+        updateHealthDisplay();
     }
 
     public void removeHealthDisplay() {
