@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeSet;
 
 public class WaveManager {
     private final JavaPlugin plugin;
@@ -125,6 +126,13 @@ public class WaveManager {
 
     public Optional<Wave> getWave(int number) {
         return Optional.ofNullable(waves.get(number));
+    }
+
+    public String getLoadedWaveNumbers() {
+        if (waves.isEmpty()) {
+            return "none";
+        }
+        return new TreeSet<>(waves.keySet()).toString();
     }
 
     private void spawnEntries(Arena arena, Wave wave) {
