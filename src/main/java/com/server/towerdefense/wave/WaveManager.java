@@ -1,9 +1,11 @@
 package com.server.towerdefense.wave;
 
 import com.server.towerdefense.arena.Arena;
+import com.server.towerdefense.arena.ArenaManager;
 import com.server.towerdefense.config.ConfigManager;
 import com.server.towerdefense.mob.MobManager;
 import com.server.towerdefense.mob.MobType;
+import com.server.towerdefense.scoreboard.ScoreboardManager;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -25,6 +27,8 @@ public class WaveManager {
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
     private final MobManager mobManager;
+    private ArenaManager arenaManager;
+    private ScoreboardManager scoreboardManager;
     private final Map<Integer, Wave> waves = new HashMap<>();
     private final Map<String, List<BukkitTask>> activeTasks = new HashMap<>();
     private final Map<String, BossBar> bossBars = new HashMap<>();
@@ -35,9 +39,19 @@ public class WaveManager {
         this.mobManager = mobManager;
     }
 
+    public void setRuntimeManagers(ArenaManager arenaManager, ScoreboardManager scoreboardManager) {
+        this.arenaManager = arenaManager;
+        this.scoreboardManager = scoreboardManager;
+    }
+
     public void loadWaves() {
         waves.clear();
-        ConfigurationSection section = configManager.getConfig().getConfigurationSection("waves");
+        ConfigurationSection section = configManager.getConfig().getConfigurationSection("wave-list");
+        String waveRoot = "wave-list";
+        if (section == null) {
+            section = configManager.getConfig().getConfigurationSection("waves");
+            waveRoot = "waves";
+        }
         if (section == null) {
             return;
         }
@@ -50,7 +64,7 @@ public class WaveManager {
                 continue;
             }
 
-            String root = "waves." + key + ".";
+            String root = waveRoot + "." + key + ".";
             int startDelayTicks = configManager.getConfig().getInt(root + "start-delay-ticks", 100);
             List<WaveMobEntry> entries = new ArrayList<>();
             for (Map<?, ?> rawEntry : configManager.getConfig().getMapList(root + "entries")) {
@@ -77,6 +91,10 @@ public class WaveManager {
         Wave wave = copyWave(template);
         wave.setActive(true);
         arena.setCurrentWave(number);
+        arena.getWorld().getPlayers().forEach(player -> player.sendMessage("Wave " + number + " starts soon."));
+        if (scoreboardManager != null) {
+            scoreboardManager.update(arena);
+        }
 
         startCountdownBossBar(arena, wave);
         BukkitTask spawnTask = Bukkit.getScheduler().runTaskLater(plugin, () -> spawnEntries(arena, wave), wave.getStartDelayTicks());
@@ -123,6 +141,9 @@ public class WaveManager {
                     if (arena.isRunning()) {
                         mobManager.spawnMob(arena, entry.getType());
                         wave.incrementSpawnedMobs();
+                        if (scoreboardManager != null) {
+                            scoreboardManager.update(arena);
+                        }
                     }
                 }, delay);
                 trackTask(arena, task);
@@ -132,17 +153,32 @@ public class WaveManager {
     }
 
     private void startNextWaveIfPresent(Arena arena, int currentNumber) {
+        arena.getWorld().getPlayers().forEach(player -> player.sendMessage("Wave " + currentNumber + " completed."));
         Optional<Integer> nextWave = waves.keySet().stream()
                 .filter(number -> number > currentNumber)
                 .min(Comparator.naturalOrder());
-        if (nextWave.isPresent()) {
-            startWave(arena, nextWave.get());
+        if (nextWave.isPresent() && configManager.getConfig().getBoolean("waves.auto-start-next-wave", true)) {
+            int delay = configManager.getConfig().getInt("waves.delay-between-waves-ticks", 200);
+            BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> startWave(arena, nextWave.get()), delay);
+            trackTask(arena, task);
+        } else if (nextWave.isPresent()) {
+            arena.getWorld().getPlayers().forEach(player -> player.sendMessage("Next wave is ready. Use /td nextwave " + arena.getId() + "."));
         } else {
             BossBar bossBar = getBossBar(arena);
             bossBar.setColor(BarColor.GREEN);
             bossBar.setProgress(1.0);
             bossBar.setTitle("All waves completed");
+            if (arenaManager != null) {
+                arenaManager.winArena(arena);
+            }
         }
+    }
+
+    public boolean startNextWave(Arena arena) {
+        Optional<Integer> nextWave = waves.keySet().stream()
+                .filter(number -> number > arena.getCurrentWave())
+                .min(Comparator.naturalOrder());
+        return nextWave.filter(number -> startWave(arena, number)).isPresent();
     }
 
     private Wave copyWave(Wave wave) {
