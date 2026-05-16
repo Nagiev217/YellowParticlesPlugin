@@ -2,8 +2,10 @@ package com.server.towerdefense.mob;
 
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.arena.ArenaManager;
+import com.server.towerdefense.base.BaseManager;
 import com.server.towerdefense.config.ConfigManager;
 import com.server.towerdefense.path.PathManager;
+import com.server.towerdefense.scoreboard.ScoreboardManager;
 import com.server.towerdefense.tower.Tower;
 import com.server.towerdefense.tower.TowerManager;
 import org.bukkit.Location;
@@ -19,14 +21,19 @@ public class MobMovementTask extends BukkitRunnable {
     private final PathManager pathManager;
     private final TowerManager towerManager;
     private final ConfigManager configManager;
+    private final BaseManager baseManager;
+    private final ScoreboardManager scoreboardManager;
     private long currentTick;
 
-    public MobMovementTask(ArenaManager arenaManager, MobManager mobManager, PathManager pathManager, TowerManager towerManager, ConfigManager configManager) {
+    public MobMovementTask(ArenaManager arenaManager, MobManager mobManager, PathManager pathManager, TowerManager towerManager,
+                           ConfigManager configManager, BaseManager baseManager, ScoreboardManager scoreboardManager) {
         this.arenaManager = arenaManager;
         this.mobManager = mobManager;
         this.pathManager = pathManager;
         this.towerManager = towerManager;
         this.configManager = configManager;
+        this.baseManager = baseManager;
+        this.scoreboardManager = scoreboardManager;
     }
 
     @Override
@@ -49,6 +56,11 @@ public class MobMovementTask extends BukkitRunnable {
 
         if (pathManager.hasReachedEnd(arena, mob.getPathIndex())) {
             mobManager.leakMob(arena, mob);
+            if (baseManager.damageBase(arena, mob.getType())) {
+                arenaManager.defeatArena(arena);
+                return;
+            }
+            scoreboardManager.update(arena);
             return;
         }
 
