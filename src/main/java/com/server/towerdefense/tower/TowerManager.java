@@ -2,12 +2,12 @@ package com.server.towerdefense.tower;
 
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.config.ConfigManager;
+import com.server.towerdefense.visual.TowerVisualService;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -22,13 +22,15 @@ import java.util.UUID;
 public class TowerManager {
     public static final String TOWER_ITEM_NAME = "Tower Defense Tower";
 
-    private final JavaPlugin plugin;
     private final ConfigManager configManager;
+    private final TowerUpgradeService upgradeService;
+    private final TowerVisualService visualService;
     private final NamespacedKey towerItemKey;
 
-    public TowerManager(JavaPlugin plugin, ConfigManager configManager) {
-        this.plugin = plugin;
+    public TowerManager(JavaPlugin plugin, ConfigManager configManager, TowerUpgradeService upgradeService, TowerVisualService visualService) {
         this.configManager = configManager;
+        this.upgradeService = upgradeService;
+        this.visualService = visualService;
         this.towerItemKey = new NamespacedKey(plugin, "tower_type");
     }
 
@@ -59,17 +61,17 @@ public class TowerManager {
     public Tower placeTower(Arena arena, Player owner, Location baseLocation, TowerType type) {
         String root = "towers." + type.getConfigKey() + ".";
         double maxHealth = configManager.getConfig().getDouble(root + "max-health", 100.0);
-        double damage = configManager.getConfig().getDouble(root + "damage");
-        double range = configManager.getConfig().getDouble(root + "range");
-        int attackSpeedTicks = configManager.getConfig().getInt(root + "attack-speed-ticks");
+        int cost = getTowerCost(type);
 
         Location towerLocation = baseLocation.getBlock().getLocation();
-        buildVisual(towerLocation, type);
-
-        ArmorStand healthDisplay = createHealthDisplay(towerLocation);
-        Tower tower = new Tower(UUID.randomUUID(), owner.getUniqueId(), towerLocation, type, maxHealth, damage, range, attackSpeedTicks, healthDisplay);
+        ArmorStand healthDisplay = visualService.buildTower(towerLocation, type);
+        Tower tower = new Tower(UUID.randomUUID(), owner.getUniqueId(), towerLocation, type, maxHealth, cost, upgradeService.getData(type, 1), healthDisplay);
         arena.getActiveTowers().add(tower);
         return tower;
+    }
+
+    public int getTowerCost(TowerType type) {
+        return configManager.getConfig().getInt("towers." + type.getConfigKey() + ".cost", 0);
     }
 
     public Optional<Tower> findAt(Arena arena, Location location) {
@@ -90,7 +92,7 @@ public class TowerManager {
 
     public void removeTower(Arena arena, Tower tower) {
         arena.getActiveTowers().remove(tower);
-        removeVisual(tower);
+        visualService.removeTower(tower);
     }
 
     public double repairTower(Tower tower) {
@@ -107,23 +109,9 @@ public class TowerManager {
     public void removeAll(Arena arena) {
         List<Tower> copy = new ArrayList<>(arena.getActiveTowers());
         for (Tower tower : copy) {
-            removeVisual(tower);
+            visualService.removeTower(tower);
         }
         arena.getActiveTowers().clear();
-    }
-
-    private void buildVisual(Location location, TowerType type) {
-        Block base = location.getBlock();
-        Block top = location.clone().add(0, 1, 0).getBlock();
-        base.setType(type.getBaseMaterial());
-        top.setType(type.getTopMaterial());
-    }
-
-    private void removeVisual(Tower tower) {
-        Location location = tower.getLocation();
-        location.getBlock().setType(org.bukkit.Material.AIR);
-        location.clone().add(0, 1, 0).getBlock().setType(org.bukkit.Material.AIR);
-        tower.removeHealthDisplay();
     }
 
     private boolean isTowerBlock(Tower tower, Location location) {
@@ -137,14 +125,4 @@ public class TowerManager {
         return towerItemKey;
     }
 
-    private ArmorStand createHealthDisplay(Location towerLocation) {
-        Location displayLocation = towerLocation.clone().add(0.5, 2.25, 0.5);
-        ArmorStand armorStand = (ArmorStand) towerLocation.getWorld().spawnEntity(displayLocation, EntityType.ARMOR_STAND);
-        armorStand.setInvisible(true);
-        armorStand.setMarker(true);
-        armorStand.setGravity(false);
-        armorStand.setInvulnerable(true);
-        armorStand.setCustomNameVisible(true);
-        return armorStand;
-    }
 }
