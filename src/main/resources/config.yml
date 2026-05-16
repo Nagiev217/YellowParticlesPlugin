@@ -1,4 +1,7 @@
 towers:
+  repair:
+    material: IRON_INGOT
+    amount: 25
   archer:
     max-health: 100
     damage: 5
@@ -19,6 +22,10 @@ towers:
     slow-duration-ticks: 60
 
 mobs:
+  tower-attack:
+    range: 1.8
+    damage: 5
+    chance-percent: 10
   normal:
     max-hp: 20
     speed: 0.18
