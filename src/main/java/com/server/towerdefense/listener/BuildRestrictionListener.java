@@ -7,6 +7,7 @@ import com.server.towerdefense.tower.TowerManager;
 import com.server.towerdefense.tower.TowerType;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 
@@ -21,7 +22,7 @@ public class BuildRestrictionListener implements Listener {
         this.configManager = configManager;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onTowerPlaceAttempt(PlayerInteractEvent event) {
         TowerType type = towerManager.readTowerItem(event.getItem());
         if (type == null || event.getClickedBlock() == null) {
