@@ -170,10 +170,20 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
         }
 
         arenaManager.getArena(args[1]).ifPresentOrElse(arena -> {
+            waveManager.loadWaves();
+            if (!arena.isRunning()) {
+                sender.sendMessage("Cannot start wave: arena '" + args[1] + "' is not running. Use /td start " + args[1] + " first.");
+                return;
+            }
+            if (waveManager.getWave(waveNumber).isEmpty()) {
+                sender.sendMessage("Cannot start wave: wave " + waveNumber + " is not loaded. Loaded waves: " + waveManager.getLoadedWaveNumbers());
+                sender.sendMessage("Check plugins/TowerDefense/config.yml and make sure wave-list." + waveNumber + " exists.");
+                return;
+            }
             if (waveManager.startWave(arena, waveNumber)) {
                 sender.sendMessage("Started wave " + waveNumber + " on arena " + args[1] + ".");
             } else {
-                sender.sendMessage("Cannot start wave. Make sure arena is running and wave exists.");
+                sender.sendMessage("Cannot start wave due to an internal state check. Loaded waves: " + waveManager.getLoadedWaveNumbers());
             }
         }, () -> sender.sendMessage("Arena not found: " + args[1]));
     }
