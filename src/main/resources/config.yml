@@ -9,6 +9,7 @@ towers:
   repair:
     material: IRON_INGOT
     amount: 25
+
   archer:
     cost: 50
     max-health: 100
@@ -30,6 +31,7 @@ towers:
         damage: 12
         range: 15
         attack-speed-ticks: 12
+
   cannon:
     cost: 80
     max-health: 150
@@ -55,6 +57,7 @@ towers:
         range: 10
         attack-speed-ticks: 40
         splash-radius: 5
+
   ice:
     cost: 70
     max-health: 120
@@ -90,21 +93,25 @@ mobs:
     range: 1.8
     damage: 5
     chance-percent: 10
+
   normal:
     max-hp: 20
     speed: 0.18
     reward: 5
     base-damage: 1
+
   fast:
     max-hp: 12
     speed: 0.28
     reward: 7
     base-damage: 1
+
   tank:
     max-hp: 80
     speed: 0.10
     reward: 15
     base-damage: 5
+
   boss:
     max-hp: 300
     speed: 0.08
@@ -122,6 +129,7 @@ wave-list:
       - type: NORMAL
         amount: 10
         spawn-delay-ticks: 20
+
   2:
     start-delay-ticks: 100
     entries:
@@ -131,12 +139,27 @@ wave-list:
       - type: FAST
         amount: 5
         spawn-delay-ticks: 15
+
   3:
     start-delay-ticks: 100
     entries:
       - type: TANK
         amount: 3
         spawn-delay-ticks: 40
+
+  4:
+    start-delay-ticks: 100
+    entries:
+      - type: NORMAL
+        amount: 10
+        spawn-delay-ticks: 15
+      - type: FAST
+        amount: 8
+        spawn-delay-ticks: 12
+      - type: TANK
+        amount: 2
+        spawn-delay-ticks: 35
+
   5:
     start-delay-ticks: 100
     entries:
@@ -164,9 +187,11 @@ arenas:
     world: world
     mob-spawn: "0,64,0"
     base: "50,64,0"
+
     build-zone:
       min: "-10,60,-10"
       max: "60,80,15"
+
     path:
       - "0,64,0"
       - "10,64,0"
