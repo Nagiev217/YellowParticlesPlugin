@@ -3,11 +3,11 @@ package com.server.towerdefense.tower;
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.config.ConfigManager;
 import com.server.towerdefense.visual.TowerVisualService;
+import com.server.towerdefense.visual.TowerVisualEntities;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -35,9 +35,19 @@ public class TowerManager {
     }
 
     public ItemStack createTowerItem(TowerType type) {
-        ItemStack item = new ItemStack(type.getTopMaterial());
+        Material itemMaterial = type.getTopMaterial();
+        Integer customModelData = null;
+        if (configManager.getConfig().getBoolean("models.enabled", false)) {
+            var modelData = visualService.getModelData(type, 1);
+            itemMaterial = modelData.getItemMaterial();
+            customModelData = modelData.getCustomModelData();
+        }
+        ItemStack item = new ItemStack(itemMaterial);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(TOWER_ITEM_NAME + ": " + type.name());
+        if (customModelData != null) {
+            meta.setCustomModelData(customModelData);
+        }
         meta.getPersistentDataContainer().set(towerItemKey, PersistentDataType.STRING, type.name());
         item.setItemMeta(meta);
         return item;
@@ -64,8 +74,11 @@ public class TowerManager {
         int cost = getTowerCost(type);
 
         Location towerLocation = baseLocation.getBlock().getLocation();
-        ArmorStand healthDisplay = visualService.buildTower(towerLocation, type);
-        Tower tower = new Tower(UUID.randomUUID(), owner.getUniqueId(), towerLocation, type, maxHealth, cost, upgradeService.getData(type, 1), healthDisplay);
+        UUID towerId = UUID.randomUUID();
+        TowerVisualEntities visualEntities = visualService.buildTower(towerLocation, type, 1, towerId);
+        Tower tower = new Tower(towerId, owner.getUniqueId(), towerLocation, type, maxHealth, cost, upgradeService.getData(type, 1), visualEntities.healthDisplay());
+        tower.setDisplayEntityId(visualEntities.displayId());
+        tower.setInteractionEntityId(visualEntities.interactionId());
         arena.getActiveTowers().add(tower);
         return tower;
     }
@@ -77,6 +90,12 @@ public class TowerManager {
     public Optional<Tower> findAt(Arena arena, Location location) {
         return arena.getActiveTowers().stream()
                 .filter(tower -> isTowerBlock(tower, location))
+                .findFirst();
+    }
+
+    public Optional<Tower> findById(Arena arena, UUID towerId) {
+        return arena.getActiveTowers().stream()
+                .filter(tower -> tower.getId().equals(towerId))
                 .findFirst();
     }
 
