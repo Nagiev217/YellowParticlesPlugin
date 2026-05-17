@@ -2,6 +2,8 @@ package com.server.towerdefense.mob;
 
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.config.ConfigManager;
+import com.server.towerdefense.visual.MobModelData;
+import com.server.towerdefense.visual.MobVisualService;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
@@ -10,7 +12,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public class MobManager {
@@ -18,10 +19,12 @@ public class MobManager {
 
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
+    private final MobVisualService mobVisualService;
 
-    public MobManager(JavaPlugin plugin, ConfigManager configManager) {
+    public MobManager(JavaPlugin plugin, ConfigManager configManager, MobVisualService mobVisualService) {
         this.plugin = plugin;
         this.configManager = configManager;
+        this.mobVisualService = mobVisualService;
     }
 
     public TDMob spawnMob(Arena arena, MobType type) {
@@ -30,7 +33,8 @@ public class MobManager {
         double speed = configManager.getConfig().getDouble(root + "speed");
         int reward = configManager.getConfig().getInt(root + "reward");
 
-        LivingEntity entity = (LivingEntity) arena.getWorld().spawnEntity(arena.getMobSpawn(), type.getEntityType());
+        MobModelData modelData = mobVisualService.getModelData(type);
+        LivingEntity entity = (LivingEntity) arena.getWorld().spawnEntity(arena.getMobSpawn(), modelData.getBaseEntity());
         entity.setMetadata(TD_MOB_METADATA, new FixedMetadataValue(plugin, arena.getId()));
         entity.setRemoveWhenFarAway(false);
         entity.setCanPickupItems(false);
@@ -47,18 +51,20 @@ public class MobManager {
 
         TDMob tdMob = new TDMob(UUID.randomUUID(), entity, type, maxHp, speed, reward);
         entity.setCustomName(tdMob.formatName());
+        mobVisualService.applyVisual(tdMob);
         arena.getActiveMobs().add(tdMob);
         return tdMob;
-    
     }
 
     public void killMob(Arena arena, TDMob mob) {
         arena.getActiveMobs().remove(mob);
+        mobVisualService.removeMobVisual(mob);
         mob.getEntity().remove();
     }
 
     public void leakMob(Arena arena, TDMob mob) {
         arena.getActiveMobs().remove(mob);
+        mobVisualService.removeMobVisual(mob);
         mob.getEntity().remove();
         arena.getWorld().strikeLightningEffect(arena.getBaseLocation());
     }
@@ -66,6 +72,7 @@ public class MobManager {
     public void removeAll(Arena arena) {
         List<TDMob> copy = new ArrayList<>(arena.getActiveMobs());
         for (TDMob mob : copy) {
+            mobVisualService.removeMobVisual(mob);
             mob.getEntity().remove();
         }
         arena.getActiveMobs().clear();
@@ -74,5 +81,9 @@ public class MobManager {
     public List<TDMob> getLivingMobs(Arena arena) {
         arena.getActiveMobs().removeIf(mob -> mob.getEntity().isDead() || !mob.getEntity().isValid());
         return arena.getActiveMobs();
+    }
+
+    public MobVisualService getMobVisualService() {
+        return mobVisualService;
     }
 }
