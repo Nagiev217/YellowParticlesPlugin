@@ -17,6 +17,7 @@ public class TDMob {
     private double slowMultiplier = 1.0;
     private long slowUntilTick;
     private boolean towerAttackAttempted;
+    private UUID displayEntityId;
 
     public TDMob(UUID id, LivingEntity entity, MobType type, double maxHp, double baseSpeed, int reward) {
         this.id = id;
@@ -54,6 +55,14 @@ public class TDMob {
 
     public int getReward() {
         return reward;
+    }
+
+    public UUID getDisplayEntityId() {
+        return displayEntityId;
+    }
+
+    public void setDisplayEntityId(UUID displayEntityId) {
+        this.displayEntityId = displayEntityId;
     }
 
     public int getPathIndex() {
