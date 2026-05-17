@@ -1,6 +1,8 @@
 package com.server.towerdefense;
 
 import com.server.towerdefense.arena.ArenaManager;
+import com.server.towerdefense.animation.MobAnimationService;
+import com.server.towerdefense.animation.TowerAnimationService;
 import com.server.towerdefense.base.BaseManager;
 import com.server.towerdefense.config.ConfigManager;
 import com.server.towerdefense.economy.EconomyManager;
@@ -11,6 +13,7 @@ import com.server.towerdefense.listener.TowerInteractListener;
 import com.server.towerdefense.listener.TowerPlaceListener;
 import com.server.towerdefense.mob.MobManager;
 import com.server.towerdefense.mob.MobMovementTask;
+import com.server.towerdefense.mob.MobType;
 import com.server.towerdefense.path.PathManager;
 import com.server.towerdefense.scoreboard.ScoreboardManager;
 import com.server.towerdefense.tower.TowerAttackTask;
@@ -18,13 +21,20 @@ import com.server.towerdefense.tower.TowerManager;
 import com.server.towerdefense.tower.TowerType;
 import com.server.towerdefense.tower.TowerUpgradeService;
 import com.server.towerdefense.ui.TowerMenu;
+import com.server.towerdefense.visual.ModelDisplayManager;
+import com.server.towerdefense.visual.MobModelData;
+import com.server.towerdefense.visual.MobVisualService;
+import com.server.towerdefense.visual.TowerModelData;
 import com.server.towerdefense.visual.TowerVisualService;
 import com.server.towerdefense.wave.WaveManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -43,6 +53,11 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
     private ScoreboardManager scoreboardManager;
     private TowerUpgradeService upgradeService;
     private TowerMenu towerMenu;
+    private ModelDisplayManager modelDisplayManager;
+    private TowerVisualService towerVisualService;
+    private MobVisualService mobVisualService;
+    private TowerAnimationService towerAnimationService;
+    private MobAnimationService mobAnimationService;
     private BukkitTask movementTask;
     private BukkitTask attackTask;
     private BukkitTask scoreboardTask;
@@ -56,9 +71,15 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
         arenaManager = new ArenaManager(configManager);
         economyManager = new EconomyManager(configManager);
         baseManager = new BaseManager(configManager);
+        modelDisplayManager = new ModelDisplayManager(this);
+        towerVisualService = new TowerVisualService(configManager, modelDisplayManager);
+        mobVisualService = new MobVisualService(configManager, modelDisplayManager);
+        towerAnimationService = new TowerAnimationService();
+        mobAnimationService = new MobAnimationService();
         upgradeService = new TowerUpgradeService(configManager);
-        towerManager = new TowerManager(this, configManager, upgradeService, new TowerVisualService());
-        mobManager = new MobManager(this, configManager);
+        upgradeService.setTowerVisualService(towerVisualService);
+        towerManager = new TowerManager(this, configManager, upgradeService, towerVisualService);
+        mobManager = new MobManager(this, configManager, mobVisualService);
         scoreboardManager = new ScoreboardManager(economyManager, baseManager, mobManager);
         waveManager = new WaveManager(this, configManager, mobManager);
         arenaManager.setRuntimeManagers(towerManager, mobManager, waveManager);
@@ -69,8 +90,8 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
         arenaManager.loadArenas();
         waveManager.loadWaves();
 
-        movementTask = new MobMovementTask(arenaManager, mobManager, pathManager, towerManager, configManager, baseManager, scoreboardManager).runTaskTimer(this, 1L, 1L);
-        attackTask = new TowerAttackTask(arenaManager, mobManager, economyManager, scoreboardManager).runTaskTimer(this, 1L, 1L);
+        movementTask = new MobMovementTask(arenaManager, mobManager, pathManager, towerManager, configManager, baseManager, scoreboardManager, mobAnimationService).runTaskTimer(this, 1L, 1L);
+        attackTask = new TowerAttackTask(arenaManager, mobManager, economyManager, scoreboardManager, towerAnimationService).runTaskTimer(this, 1L, 1L);
         scoreboardTask = Bukkit.getScheduler().runTaskTimer(this, () -> arenaManager.getArenas().stream()
                 .filter(arena -> arena.isRunning())
                 .forEach(arena -> {
@@ -80,7 +101,7 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
 
         getServer().getPluginManager().registerEvents(new BuildRestrictionListener(arenaManager, towerManager, configManager), this);
         getServer().getPluginManager().registerEvents(new TowerPlaceListener(arenaManager, towerManager, economyManager, scoreboardManager), this);
-        getServer().getPluginManager().registerEvents(new TowerInteractListener(arenaManager, towerManager, towerMenu), this);
+        getServer().getPluginManager().registerEvents(new TowerInteractListener(arenaManager, towerManager, towerMenu, modelDisplayManager), this);
         getServer().getPluginManager().registerEvents(new TowerBreakListener(arenaManager, towerManager), this);
         getServer().getPluginManager().registerEvents(new MenuListener(arenaManager, towerManager, upgradeService, economyManager, scoreboardManager, towerMenu), this);
         if (getCommand("td") != null) {
@@ -121,6 +142,7 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
             case "wave" -> handleWave(sender, args);
             case "nextwave" -> handleNextWave(sender, args);
             case "tower" -> handleTower(sender, args);
+            case "model" -> handleModel(sender, args);
             case "money" -> handleMoney(sender);
             case "give" -> handleGive(sender, args);
             case "base" -> handleBase(sender);
@@ -204,6 +226,57 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
         }
         player.getInventory().addItem(towerManager.createTowerItem(type));
         player.sendMessage("Given " + type.name() + " item.");
+    }
+
+    private void handleModel(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can test models.");
+            return;
+        }
+        if (args.length < 2) {
+            player.sendMessage("Usage: /td model tower <archer|cannon|ice> <level> | /td model mob <normal|fast|tank|boss> | /td model remove");
+            return;
+        }
+        if (args[1].equalsIgnoreCase("remove")) {
+            removeNearestTestModel(player);
+            return;
+        }
+        if (args[1].equalsIgnoreCase("tower") && args.length >= 4) {
+            TowerType type = TowerType.fromCommand(args[2]);
+            if (type == null) {
+                player.sendMessage("Unknown tower model type.");
+                return;
+            }
+            int level;
+            try {
+                level = Integer.parseInt(args[3]);
+            } catch (NumberFormatException exception) {
+                player.sendMessage("Level must be a number.");
+                return;
+            }
+            TowerModelData modelData = towerVisualService.getModelData(type, level);
+            Location location = player.getLocation().clone().add(player.getLocation().getDirection().normalize().multiply(2.0));
+            ItemDisplay display = modelDisplayManager.spawnItemDisplay(location, modelData.getItemMaterial(), modelData.getCustomModelData(), modelData.getScale(), player.getLocation().getYaw());
+            modelDisplayManager.tagTestModel(display);
+            player.sendMessage("Spawned test tower model " + type.name() + " level " + level + ".");
+            return;
+        }
+        if (args[1].equalsIgnoreCase("mob") && args.length >= 3) {
+            MobType type;
+            try {
+                type = MobType.valueOf(args[2].toUpperCase());
+            } catch (IllegalArgumentException exception) {
+                player.sendMessage("Unknown mob model type.");
+                return;
+            }
+            MobModelData modelData = mobVisualService.getModelData(type);
+            Location location = player.getLocation().clone().add(player.getLocation().getDirection().normalize().multiply(2.0));
+            ItemDisplay display = modelDisplayManager.spawnItemDisplay(location, modelData.getItemMaterial(), modelData.getCustomModelData(), modelData.getScale(), player.getLocation().getYaw());
+            modelDisplayManager.tagTestModel(display);
+            player.sendMessage("Spawned test mob model " + type.name() + ".");
+            return;
+        }
+        player.sendMessage("Usage: /td model tower <archer|cannon|ice> <level> | /td model mob <normal|fast|tank|boss> | /td model remove");
     }
 
     private void handleNextWave(CommandSender sender, String[] args) {
@@ -304,19 +377,32 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
         sender.sendMessage("/td wave test 1");
         sender.sendMessage("/td nextwave test");
         sender.sendMessage("/td tower archer|cannon|ice");
+        sender.sendMessage("/td model tower archer 1 | /td model mob normal | /td model remove");
         sender.sendMessage("/td money | /td base | /td towers | /td mobs");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(List.of("start", "stop", "wave", "nextwave", "tower", "money", "give", "base", "towers", "mobs", "reload"), args[0]);
+            return filter(List.of("start", "stop", "wave", "nextwave", "tower", "model", "money", "give", "base", "towers", "mobs", "reload"), args[0]);
         }
         if (args.length == 2 && List.of("start", "stop", "wave", "nextwave").contains(args[0].toLowerCase())) {
             return filter(arenaManager.getArenas().stream().map(arena -> arena.getId()).toList(), args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("tower")) {
             return filter(List.of("archer", "cannon", "ice"), args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("model")) {
+            return filter(List.of("tower", "mob", "remove"), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("model") && args[1].equalsIgnoreCase("tower")) {
+            return filter(List.of("archer", "cannon", "ice"), args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("model") && args[1].equalsIgnoreCase("mob")) {
+            return filter(List.of("normal", "fast", "tank", "boss"), args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("model") && args[1].equalsIgnoreCase("tower")) {
+            return filter(List.of("1", "2", "3"), args[3]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("wave")) {
             return filter(List.of("1", "2", "3", "5"), args[2]);
@@ -343,5 +429,20 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
     }
 
     private record ArenaForSender(com.server.towerdefense.arena.Arena arena) {
+    }
+
+    private void removeNearestTestModel(Player player) {
+        Entity nearest = player.getNearbyEntities(8, 8, 8).stream()
+                .filter(modelDisplayManager::isTestModel)
+                .min((first, second) -> Double.compare(
+                        first.getLocation().distanceSquared(player.getLocation()),
+                        second.getLocation().distanceSquared(player.getLocation())))
+                .orElse(null);
+        if (nearest == null) {
+            player.sendMessage("No test model nearby.");
+            return;
+        }
+        nearest.remove();
+        player.sendMessage("Removed nearest test model.");
     }
 }
