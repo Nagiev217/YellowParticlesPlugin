@@ -7,7 +7,7 @@ description: Minimal extensible Tower Defence core for Purpur/Paper 1.20.1.
 commands:
   td:
     description: Tower Defense commands.
-    usage: /td <start|stop|wave|nextwave|tower|money|give|base|towers|mobs|reload>
+    usage: /td <start|stop|wave|nextwave|tower|model|money|give|base|towers|mobs|reload>
     permission: towerdefense.admin
 permissions:
   towerdefense.admin:
