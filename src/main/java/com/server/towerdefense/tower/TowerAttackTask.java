@@ -2,6 +2,7 @@ package com.server.towerdefense.tower;
 
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.arena.ArenaManager;
+import com.server.towerdefense.animation.TowerAnimationService;
 import com.server.towerdefense.economy.EconomyManager;
 import com.server.towerdefense.mob.MobManager;
 import com.server.towerdefense.mob.TDMob;
@@ -20,13 +21,16 @@ public class TowerAttackTask extends BukkitRunnable {
     private final MobManager mobManager;
     private final EconomyManager economyManager;
     private final ScoreboardManager scoreboardManager;
+    private final TowerAnimationService towerAnimationService;
     private long currentTick;
 
-    public TowerAttackTask(ArenaManager arenaManager, MobManager mobManager, EconomyManager economyManager, ScoreboardManager scoreboardManager) {
+    public TowerAttackTask(ArenaManager arenaManager, MobManager mobManager, EconomyManager economyManager,
+                           ScoreboardManager scoreboardManager, TowerAnimationService towerAnimationService) {
         this.arenaManager = arenaManager;
         this.mobManager = mobManager;
         this.economyManager = economyManager;
         this.scoreboardManager = scoreboardManager;
+        this.towerAnimationService = towerAnimationService;
     }
 
     @Override
@@ -64,6 +68,7 @@ public class TowerAttackTask extends BukkitRunnable {
 
     private void attack(Arena arena, Tower tower, TDMob target) {
         tower.markAttack(currentTick);
+        towerAnimationService.playAttack(tower, target.getEntity().getLocation());
         switch (tower.getType()) {
             case ARCHER_TOWER -> damageSingle(arena, tower, target, Particle.CRIT, Sound.ENTITY_ARROW_SHOOT);
             case CANNON_TOWER -> damageSplash(arena, tower, target);
