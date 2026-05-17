@@ -24,7 +24,7 @@ public class MobVisualService {
         boolean enabled = configManager.getConfig().getBoolean("models.enabled", false);
         EntityType baseEntity = parseEntity(configManager.getConfig().getString(root + "base-entity"), type.getEntityType());
         Material material = Material.matchMaterial(configManager.getConfig().getString(root + "item", "PAPER"));
-        int customModelData = configManager.getConfig().getInt(root + "custom-model-data", 2000);
+        int customModelData = configManager.getConfig().getInt(root + "custom-model-data", getDefaultCustomModelData(type));
         float scale = (float) configManager.getConfig().getDouble(root + "scale", 1.0);
         double yOffset = configManager.getConfig().getDouble(root + "y-offset", 0.0);
         return new MobModelData(enabled, baseEntity, material == null ? Material.PAPER : material, customModelData, scale, yOffset);
@@ -78,5 +78,14 @@ public class MobVisualService {
         } catch (IllegalArgumentException exception) {
             return fallback;
         }
+    }
+
+    private int getDefaultCustomModelData(MobType type) {
+        return switch (type) {
+            case NORMAL -> 2001;
+            case FAST -> 2002;
+            case TANK -> 2003;
+            case BOSS -> 2004;
+        };
     }
 }
