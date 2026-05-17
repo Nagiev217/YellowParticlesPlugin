@@ -2,6 +2,7 @@ package com.server.towerdefense.mob;
 
 import com.server.towerdefense.arena.Arena;
 import com.server.towerdefense.arena.ArenaManager;
+import com.server.towerdefense.animation.MobAnimationService;
 import com.server.towerdefense.base.BaseManager;
 import com.server.towerdefense.config.ConfigManager;
 import com.server.towerdefense.path.PathManager;
@@ -23,10 +24,12 @@ public class MobMovementTask extends BukkitRunnable {
     private final ConfigManager configManager;
     private final BaseManager baseManager;
     private final ScoreboardManager scoreboardManager;
+    private final MobAnimationService mobAnimationService;
     private long currentTick;
 
     public MobMovementTask(ArenaManager arenaManager, MobManager mobManager, PathManager pathManager, TowerManager towerManager,
-                           ConfigManager configManager, BaseManager baseManager, ScoreboardManager scoreboardManager) {
+                           ConfigManager configManager, BaseManager baseManager, ScoreboardManager scoreboardManager,
+                           MobAnimationService mobAnimationService) {
         this.arenaManager = arenaManager;
         this.mobManager = mobManager;
         this.pathManager = pathManager;
@@ -34,6 +37,7 @@ public class MobMovementTask extends BukkitRunnable {
         this.configManager = configManager;
         this.baseManager = baseManager;
         this.scoreboardManager = scoreboardManager;
+        this.mobAnimationService = mobAnimationService;
     }
 
     @Override
@@ -45,6 +49,8 @@ public class MobMovementTask extends BukkitRunnable {
             }
             for (TDMob mob : mobManager.getLivingMobs(arena).toArray(new TDMob[0])) {
                 moveMob(arena, mob);
+                mobManager.getMobVisualService().updateMobVisual(mob);
+                mobAnimationService.animateMove(mob, currentTick);
             }
         }
     }
