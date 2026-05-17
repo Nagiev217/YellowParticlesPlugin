@@ -12,6 +12,8 @@ public class Tower {
     private final TowerType type;
     private final double maxHealth;
     private final ArmorStand healthDisplay;
+    private UUID displayEntityId;
+    private UUID interactionEntityId;
     private double damage;
     private double range;
     private int attackSpeedTicks;
@@ -63,6 +65,22 @@ public class Tower {
 
     public double getHealth() {
         return health;
+    }
+
+    public UUID getDisplayEntityId() {
+        return displayEntityId;
+    }
+
+    public void setDisplayEntityId(UUID displayEntityId) {
+        this.displayEntityId = displayEntityId;
+    }
+
+    public UUID getInteractionEntityId() {
+        return interactionEntityId;
+    }
+
+    public void setInteractionEntityId(UUID interactionEntityId) {
+        this.interactionEntityId = interactionEntityId;
     }
 
     public double getDamage() {
