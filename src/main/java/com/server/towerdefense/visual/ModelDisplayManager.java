@@ -32,8 +32,11 @@ public class ModelDisplayManager {
 
     public ItemDisplay spawnItemDisplay(Location location, Material material, int customModelData, float scale, float yawDegrees) {
         ItemDisplay display = (ItemDisplay) location.getWorld().spawnEntity(location, EntityType.ITEM_DISPLAY);
+
         display.setItemStack(createModelItem(material, customModelData));
+        display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
         display.setBillboard(Display.Billboard.FIXED);
+
         applyTransform(display, scale, yawDegrees, 0.0f);
         return display;
     }
@@ -49,7 +52,9 @@ public class ModelDisplayManager {
     public ItemStack createModelItem(Material material, int customModelData) {
         ItemStack item = new ItemStack(material == null ? Material.PAPER : material);
         ItemMeta meta = item.getItemMeta();
+
         meta.setCustomModelData(customModelData);
+
         item.setItemMeta(meta);
         return item;
     }
@@ -75,6 +80,7 @@ public class ModelDisplayManager {
         if (raw == null) {
             return Optional.empty();
         }
+
         try {
             return Optional.of(UUID.fromString(raw));
         } catch (IllegalArgumentException exception) {
@@ -86,13 +92,17 @@ public class ModelDisplayManager {
         if (display == null || !display.isValid()) {
             return;
         }
+
         display.setItemStack(createModelItem(material, customModelData));
+        display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+
         applyTransform(display, scale, yawDegrees, 0.0f);
     }
 
     public void applyTransform(ItemDisplay display, float scale, float yawDegrees, float pitchDegrees) {
         float yawRadians = (float) Math.toRadians(yawDegrees);
         float pitchRadians = (float) Math.toRadians(pitchDegrees);
+
         display.setTransformation(new Transformation(
                 new Vector3f(0, 0, 0),
                 new AxisAngle4f(yawRadians, 0, 1, 0),
