@@ -273,7 +273,10 @@ public class TowerDefensePlugin extends JavaPlugin implements CommandExecutor, T
             Location location = player.getLocation().clone().add(player.getLocation().getDirection().normalize().multiply(2.0));
             ItemDisplay display = modelDisplayManager.spawnItemDisplay(location, modelData.getItemMaterial(), modelData.getCustomModelData(), modelData.getScale(), player.getLocation().getYaw());
             modelDisplayManager.tagTestModel(display);
-            player.sendMessage("Spawned test mob model " + type.name() + ".");
+            player.sendMessage("Spawned test mob model " + type.name()
+                    + " | item=" + modelData.getItemMaterial()
+                    + " | cmd=" + modelData.getCustomModelData()
+                    + " | scale=" + modelData.getScale());
             return;
         }
         player.sendMessage("Usage: /td model tower <archer|cannon|ice> <level> | /td model mob <normal|fast|tank|boss> | /td model remove");
