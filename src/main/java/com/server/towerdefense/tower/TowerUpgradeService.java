@@ -1,13 +1,19 @@
 package com.server.towerdefense.tower;
 
 import com.server.towerdefense.config.ConfigManager;
+import com.server.towerdefense.visual.TowerVisualService;
 import org.bukkit.configuration.ConfigurationSection;
 
 public class TowerUpgradeService {
     private final ConfigManager configManager;
+    private TowerVisualService towerVisualService;
 
     public TowerUpgradeService(ConfigManager configManager) {
         this.configManager = configManager;
+    }
+
+    public void setTowerVisualService(TowerVisualService towerVisualService) {
+        this.towerVisualService = towerVisualService;
     }
 
     public TowerUpgradeData getData(TowerType type, int level) {
@@ -51,5 +57,8 @@ public class TowerUpgradeService {
 
     public void applyLevel(Tower tower, int level) {
         tower.applyUpgradeData(getData(tower.getType(), level));
+        if (towerVisualService != null) {
+            towerVisualService.updateTowerModel(tower);
+        }
     }
 }
